@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroPulse - Estufa Inteligente</title>
+    <style>
+        :root {
+            --bg-main: #0B0F12;
+            --bg-surface: #141A22;
+            --bg-card: #1A232E;
+            --border-muted: #263344;
+            --border-focus: #3B82F6;
+            
+            --text-primary: #F3F4F6;
+            --text-secondary: #9CA3AF;
+            --text-muted: #6B7280;
+
+            --cls-normal: #10B981;
+            --cls-frio: #3B82F6;
+            --cls-calor: #F59E0B;
+            --cls-seco: #EF4444;
+            
+            --bnt-active-green: #1E3A1E;
+            --led-off: #2C3540;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 240px;
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-muted);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-muted);
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .nav-item button {
+            width: 100%;
+            padding: 12px 14px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-item button:hover {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active button {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border-left: 3px solid var(--border-focus);
+            font-weight: 600;
+        }
+
+        .main-container {
+            flex: 1;
+            position: relative;
+            background-color: var(--bg-main);
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .screen {
+            display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-muted);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px 14px;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-muted);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--border-focus);
+        }
+
+        .grid-2x {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .grid-3x {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #212B35;
+            border: 1px solid var(--border-muted);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: #2C3745;
+        }
+
+        .btn-primary {
+            background-color: #2563EB;
+            border-color: #3B82F6;
+        }
+
+        .btn-primary:hover {
+            background-color: #1D4ED8;
+        }
+
+        .metric-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-muted);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .metric-val {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .tamagotchi-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+        }
+
+        .plant-viewport {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-muted);
+            border-radius: 8px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 380px;
+            position: relative;
+        }
+
+        .plant-avatar {
+            font-size: 96px;
+            line-height: 1;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+            transition: transform 0.3s ease;
+        }
+
+        .plant-status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .actuator-deck {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toggle-switch-panel {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-muted);
+            border-radius: 8px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .toggle-switch-panel:hover {
+            background-color: var(--bg-card);
+        }
+
+        .toggle-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle-icon {
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            background-color: var(--bg-main);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hardware-status-module {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-text-indicator {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .led-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--led-off);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            transition: all 0.15s ease;
+        }
+
+        .toggle-switch-panel.active {
+            background-color: var(--bnt-active-green);
+            border-color: #2F5E2F;
+        }
+
+        .toggle-switch-panel.active .status-text-indicator {
+            color: #10B981;
+        }
+
+        .toggle-switch-panel.active[data-type="aquecer"] .led-indicator { background-color: #EF4444; box-shadow: 0 0 8px #EF4444; }
+        .toggle-switch-panel.active[data-type="resfriar"] .led-indicator { background-color: #3B82F6; box-shadow: 0 0 8px #3B82F6; }
+        .toggle-switch-panel.active[data-type="umidificar"] .led-indicator { background-color: #A855F7; box-shadow: 0 0 8px #A855F7; }
+        .toggle-switch-panel.active[data-type="irrigar"] .led-indicator { background-color: #06B6D4; box-shadow: 0 0 8px #06B6D4; }
+
+        .health-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: var(--bg-main);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            width: 100%;
+            background-color: var(--cls-normal);
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .terminal-box {
+            background-color: #06090C;
+            border: 1px solid var(--border-muted);
+            border-radius: 6px;
+            height: 160px;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #A3AED0;
+        }
+
+        .terminal-line { margin-bottom: 4px; }
+        .terminal-time { color: var(--text-muted); margin-right: 6px; }
+
+        .chat-container {
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-muted);
+            border-radius: 6px;
+            background-color: var(--bg-surface);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .chat-bubble.user {
+            background-color: #212B35;
+            align-self: flex-end;
+            color: var(--text-primary);
+        }
+
+        .chat-bubble.bot {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-muted);
+            align-self: flex-start;
+            color: #34D399;
+        }
+
+        .chat-input-row {
+            padding: 12px;
+            background-color: var(--bg-main);
+            border-top: 1px solid var(--border-muted);
+            display: flex;
+            gap: 10px;
+        }
+
+        .floating-ai-trigger {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #2563EB;
+            color: white;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 999;
+            transition: transform 0.2s ease;
+        }
+
+        .floating-ai-trigger:hover {
+            transform: scale(1.05);
+        }
+
+        #notification-toast {
+            display: none;
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background-color: #EF4444;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 10000;
+            font-size: 13px;
+            font-weight: 700;
+            border-left: 6px solid #B91C1C;
+            max-width: 380px;
+            animation: slideIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="notification-toast">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;">
+            <span id="notification-text">⚠ ALERTA CRÍTICO DE CULTIVO</span>
+            <button onclick="fecharNotificacaoWeb()" style="background: transparent; border: none; color: white; font-weight: 900; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+        </div>
+    </div>
+
+    <nav class="sidebar" id="app-sidebar" style="display: none;">
+        <div class="sidebar-brand">Bem vindo ao AgroPulse</div>
+        <ul class="nav-group">
+            <li class="nav-item" id="nav-selecao"><button onclick="irParaTela('screen-selecao')">Perfis de Cultivo</button></li>
+            <li class="nav-item" id="nav-simulacao"><button onclick="irParaTela('screen-simulacao')">Telemetria Real</button></li>
+            <li class="nav-item" id="nav-tamagotchi"><button onclick="irParaTela('screen-tamagotchi')">Painel Tamagotchi</button></li>
+            <li class="nav-item" id="nav-assistente"><button onclick="irParaTela('screen-assistente')">Consultoria IA</button></li>
+        </ul>
+        <div style="margin-top: auto;">
+            <button class="btn" style="width:100%; border-color: #D97706; color: #D97706;" onclick="toggleModoDemonstracao()" id="btn-demo">⚡ Modo Demo: OFF</button>
+        </div>
+    </nav>
+
+    <main class="main-container">
+
+        <section id="screen-porta" class="screen active">
+            <div style="max-width: 500px; margin: 60px auto;">
+                <div class="panel">
+                    <div class="panel-title">Conexão de Barramento</div>
+                    <div class="form-group">
+                        <label>Modo de Operação do Sistema</label>
+                        <select id="hardware-port-select">
+                            <option value="simulado" selected>Modo Simulação Inteligente (Física Ativa)</option>
+                            <option value="hardware_real">ESP32 Físico (IP de Rede Local)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="esp32-ip-container" style="display: none;">
+                        <label>Endereço IP do ESP32 na Rede</label>
+                        <input type="text" id="esp32-ip-input" value="192.168.1.100" placeholder="Ex: 192.168.1.15">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="conectarHardware()">Estabelecer Conexão</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="screen-selecao" class="screen">
+            <div class="panel">
+                <div class="panel-title">🪴 Gerenciamento de Perfis Biológicos</div>
+                <div class="form-group">
+                    <label>Perfil Alvo Ativo</label>
+                    <select id="global-plant-selector"></select>
+                </div>
+                <div class="grid-2x">
+                    <button class="btn btn-primary" onclick="confirmarPerfilPlanta()">Carregar Parâmetros</button>
+                    <button class="btn" onclick="irParaTela('screen-adicionar')">➕ Cadastrar Nova Espécie</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="screen-adicionar" class="screen">
+            <div class="panel">
+                <div class="panel-title">➕ Configuração de Limites Críticos</div>
+                <div class="form-group">
+                    <label>Nome Técnico do Cultivo</label>
+                    <input type="text" id="add-nome" placeholder="Ex: Tomate Hidropônico">
+                </div>
+                <div class="grid-2x">
+                    <div class="form-group"><label>Temperatura Mínima (°C)</label><input type="number" id="add-tmin" value="18"></div>
+                    <div class="form-group"><label>Temperatura Máxima (°C)</label><input type="number" id="add-tmax" value="28"></div>
+                    <div class="form-group"><label>Umidade Mínima Ar (%)</label><input type="number" id="add-umin" value="50"></div>
+                    <div class="form-group"><label>Umidade Máxima Ar (%)</label><input type="number" id="add-umax" value="80"></div>
+                </div>
+                <div class="grid-2x" style="margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="salvarPerfilPlanta()">Gravar Perfil</button>
+                    <button class="btn" onclick="irParaTela('screen-selecao')">Cancelar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="screen-simulacao" class="screen">
+            <div class="panel-title">
+                <span id="dash-nome-planta">Monitor: Nenhum</span> 
+                <span class="plant-status-badge" id="dash-estado-badge" style="background-color: var(--border-muted);">Aguardando</span>
+            </div>
+            
+            <div class="grid-2x" style="margin-bottom: 20px;">
+                <div class="metric-card">
+                    <label>TEMPERATURA </label>
+                    <div class="metric-val" id="val-temp">-- °C</div>
+                    <span id="bounds-temp" style="font-size:12px; color:var(--text-muted)">Ideal: --</span>
+                </div>
+                <div class="metric-card">
+                    <label>UMIDADE DO AR</label>
+                    <div class="metric-val" id="val-umid">-- %</div>
+                    <span id="bounds-umid" style="font-size:12px; color:var(--text-muted)">Ideal: --</span>
+                </div>
+            </div>
+
+            <div class="grid-3x" style="margin-bottom: 20px;">
+                <div class="metric-card" style="border-bottom: 3px solid #06B6D4;">
+                    <label>UMIDADE SOLO 1</label>
+                    <div class="metric-val" id="val-solo1">-- %</div>
+                </div>
+                <div class="metric-card" style="border-bottom: 3px solid #3B82F6;">
+                    <label>UMIDADE SOLO 2</label>
+                    <div class="metric-val" id="val-solo2">-- %</div>
+                </div>
+                <div class="metric-card" style="border-bottom: 3px solid #6366F1;">
+                    <label>UMIDADE SOLO 3</label>
+                    <div class="metric-val" id="val-solo3">-- %</div>
+                </div>
+            </div>
+
+            <div class="grid-2x">
+                <button class="btn btn-primary" onclick="irParaTela('screen-tamagotchi')">Ir para Painel Tamagotchi 🌱</button>
+                <button class="btn" onclick="irParaTela('screen-selecao')">Mudar Perfil</button>
+            </div>
+        </section>
+
+        <section id="screen-tamagotchi" class="screen">
+            <div class="panel-title" style="margin-bottom: 20px;">Planta Tamagotchi</div>
+            
+            <div class="tamagotchi-layout">
+                <div class="plant-viewport">
+                    <div class="plant-avatar" id="tama-avatar">🍃</div>
+                    <div class="plant-status-badge" id="tama-badge" style="background-color: var(--border-muted); margin-bottom: 10px;">Estável</div>
+                    
+                    <div style="width: 100%; max-width: 280px; text-align: center;">
+                        <label>Saúde Do Cultivo</label>
+                        <div style="font-size: 18px; font-weight:700; margin-bottom: 4px;" id="txt-saude">100%</div>
+                        <div class="health-bar-container">
+                            <div class="health-bar-fill" id="bar-saude"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actuator-deck">
+                    <label style="letter-spacing: 0.5px; font-weight: 700;">Planta Tamgotchi :D</label>
+                    
+                    <div class="toggle-switch-panel" data-type="aquecer" onclick="comutarAtuadorManual('aquecer')">
+                        <div class="toggle-info">
+                            <div class="toggle-icon">🔥</div>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 600;">Aquecer</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Módulo de Aquecimento</div>
+                            </div>
+                        </div>
+                        <div class="hardware-status-module">
+                            <span class="status-text-indicator" id="lbl-state-aquecer">Desativado</span>
+                            <div class="led-indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-switch-panel" data-type="resfriar" onclick="comutarAtuadorManual('resfriar')">
+                        <div class="toggle-info">
+                            <div class="toggle-icon">❄️</div>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 600;">Resfriar</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Coolers / Exaustores</div>
+                            </div>
+                        </div>
+                        <div class="hardware-status-module">
+                            <span class="status-text-indicator" id="lbl-state-resfriar">Desativado</span>
+                            <div class="led-indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-switch-panel" data-type="umidificar" onclick="comutarAtuadorManual('umidificar')">
+                        <div class="toggle-info">
+                            <div class="toggle-icon">💧</div>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 600;">Umidificar</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Umidificador de Ar</div>
+                            </div>
+                        </div>
+                        <div class="hardware-status-module">
+                            <span class="status-text-indicator" id="lbl-state-umidificar">Desativado</span>
+                            <div class="led-indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-switch-panel" data-type="irrigar" onclick="comutarAtuadorManual('irrigar')">
+                        <div class="toggle-info">
+                            <div class="toggle-icon">🚿</div>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 600;">Irrigar</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Bomba d'Água do Solo</div>
+                            </div>
+                        </div>
+                        <div class="hardware-status-module">
+                            <span class="status-text-indicator" id="lbl-state-irrigar">Desativado</span>
+                            <div class="led-indicator"></div>
+                        </div>
+                    </div>
+
+                    <button class="btn" style="margin-top: 6px; border-color: var(--border-focus); color: #3B82F6;" onclick="restaurarModoAutomatico()">🔄 Restaurar Modo Automático</button>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 24px; padding: 16px;">
+                <label style="font-weight: 700; margin-bottom: 8px;">AUDITORIA DE EVENTOS DO SISTEMA</label>
+                <div class="terminal-box" id="terminal-log"></div>
+            </div>
+        </section>
+
+        <section id="screen-assistente" class="screen">
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Consultoria Agrônoma Conversacional (Groq Engine)</span>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <select id="chat-voice-selector" style="width: auto; max-width: 160px; padding: 6px 10px; font-size: 12px; height: auto; background-color: var(--bg-main);"></select>
+                        <button class="btn" id="btn-voice-output" onclick="toggleVozOutput()" style="font-size: 12px; padding: 6px 10px; border-color: #10B981;" title="Ativar/Desativar Som">🔊 Voz: ON</button>
+                        <button class="btn" id="btn-voice-pause" onclick="pausarLeituraVoz()" style="font-size: 12px; padding: 6px 10px;" title="Pausar Leitura">⏸️</button>
+                        <button class="btn" id="btn-voice-resume" onclick="continuarLeituraVoz()" style="font-size: 12px; padding: 6px 10px;" title="Retomar Leitura">▶️</button>
+                        <button class="btn" id="btn-voice-stop" onclick="pararLeituraVoz()" style="font-size: 12px; padding: 6px 10px;" title="Interromper Tudo">⏹️</button>
+                        <span id="voice-status-indicator" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-left: 4px;">Parado</span>
+                    </div>
+                </div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages-box">
+                        <div class="chat-bubble bot">Olá! Estou pronta para te ajudar com o monitoramento da sua estufa física ou simulada. O áudio do MAX98357A e as entradas do INMP441 estão configurados no barramento I2S do ESP32!</div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chat-user-input" placeholder="Pergunte algo sobre o cultivo..." onkeypress="checarTeclaChat(event)">
+                        <button class="btn" id="btn-voice-input" onclick="alternarGravacaoVoz()" style="font-size: 16px;">🎙️</button>
+                        <button class="btn btn-primary" onclick="enviarMensagemIA()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <button class="floating-ai-trigger" onclick="irParaTela('screen-assistente')">🤖</button>
+
+    <script>
+        const GROQ_API_KEY = "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"; 
+        const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
+
+        // Constantes do Sistema
+        const TIMEOUT_REQUISICAO = 3500; 
+        const MAX_LOGS_TERMINAL = 100;
+
+        let plantas_db = [
+            { nome: "Alface Hidropônica", temp_min: 15, temp_max: 24, umidade_min: 60, umidade_max: 80 },
+            { nome: "Cacto Desértico", temp_min: 22, temp_max: 36, umidade_min: 15, umidade_max: 35 },
+            { nome: "Morango Premium", temp_min: 18, temp_max: 26, umidade_min: 55, umidade_max: 75 }
+        ];
+
+        // Estado Global da Aplicação
+        let plantaAtual = null;
+        let temperatura = 22.0;
+        let umidade_ar = 60.0;
+        let umidade_solo1 = 70.0;
+        let umidade_solo2 = 68.0;
+        let umidade_solo3 = 72.0;
+
+        // Variáveis de controle de ambiente base para simulação gradual
+        let tempAmbienteBase = 22.0;
+        let umidAmbienteBase = 60.0;
+        let soloAmbienteBase = 65.0;
+
+        let saude = 100.0;
+        let modoDemonstracao = false; 
+        let simular_sem_arduino = true; 
+        let esp32_ip = "192.168.1.100";
+
+        let segundosSobEstresseContínuo = 0;
+        let alertaCriticoDisparado = false;
+        let manual_states = { aquecer: false, resfriar: false, umidificar: false, irrigar: false };
+
+        // Variáveis de Gerenciamento de Rede/Infraestrutura
+        let loop_counter = 0;
+        let requisicaoEmAndamento = false;
+        let hardwareOnline = false;
+        let ultimoLogMensagem = "";
+        let ultimoLogContador = 0;
+
+        let recognition = null;
+        let gravandoVoz = false;
+        let vozSaidaAtiva = true;
+        let listaVozesNavegador = [];
+
+        // Máquina de Estados para Gerenciamento Robusto de Fala
+        let gerenciadorVoz = {
+            estado: 'PARADO', // 'FALANDO', 'PAUSADO', 'PARADO', 'CARREGANDO'
+            blocos: [],
+            indiceAtual: 0,
+            ignorarProximosBlocos: false
+        };
+
+        window.onload = function() {
+            renderizarListaPlantas();
+            inicializarModuloReconhecimentoVoz();
+            inicializarSeletorDeVozes();
+            
+            document.getElementById('hardware-port-select').addEventListener('change', function() {
+                const container = document.getElementById('esp32-ip-container');
+                container.style.display = this.value === 'hardware_real' ? 'block' : 'none';
+            });
+
+            registrarLogTerminal("Painel de gerenciamento pronto. Aguardando conexão de barramento.");
+            setInterval(executarLoopPrincipalSincronismo, 1000);
+        };
+
+        function irParaTela(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            const navMap = {
+                'screen-selecao': 'nav-selecao',
+                'screen-simulacao': 'nav-simulacao',
+                'screen-tamagotchi': 'nav-tamagotchi',
+                'screen-assistente': 'nav-assistente'
+            };
+            if(navMap[screenId]) document.getElementById(navMap[screenId]).classList.add('active');
+        }
+
+        function conectarHardware() {
+            const modo = document.getElementById('hardware-port-select').value;
+            simular_sem_arduino = (modo === "simulado");
+            
+            const ipInput = document.getElementById('esp32-ip-input').value.trim();
+            if (!simular_sem_arduino && !validarEnderecoIP(ipInput)) {
+                alert("Por favor, insira um endereço IP válido para o ESP32.");
+                return;
+            }
+            esp32_ip = ipInput;
+            
+            if ("Notification" in window) Notification.requestPermission();
+
+            document.getElementById('app-sidebar').style.display = 'flex';
+            
+            if(simular_sem_arduino) {
+                hardwareOnline = true;
+                registrarLogTerminal("Modo Simulação Ativado. Motor de física gerando dados ambientais.");
+            } else {
+                hardwareOnline = false;
+                registrarLogTerminal(`Módulo de comunicação iniciado. Tentando pareamento com ESP32 em: ${esp32_ip}`);
+            }
+            
+            plantaAtual = plantas_db[0];
+            sincronizarLabelsPlanta();
+            irParaTela('screen-simulacao');
+        }
+
+        function validarEnderecoIP(ip) {
+            const regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            return regex.test(ip);
+        }
+
+        function renderizarListaPlantas() {
+            const sel = document.getElementById('global-plant-selector');
+            if(!sel) return;
+            sel.innerHTML = '';
+            plantas_db.forEach((p, index) => {
+                let opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = p.nome;
+                sel.appendChild(opt);
+            });
+        }
+
+        function confirmarPerfilPlanta() {
+            const idx = document.getElementById('global-plant-selector').value;
+            plantaAtual = plantas_db[idx];
+            sincronizarLabelsPlanta();
+            saude = 100.0; 
+            segundosSobEstresseContínuo = 0;
+            alertaCriticoDisparado = false;
+            fecharNotificacaoWeb();
+            registrarLogTerminal(`Perfil biológico atualizado: Monitorando cultura de ${plantaAtual.nome}`);
+            irParaTela('screen-simulacao');
+        }
+
+        function sincronizarLabelsPlanta() {
+            if(!plantaAtual) return;
+            document.getElementById('dash-nome-planta').innerText = `Monitor: ${plantaAtual.nome}`;
+            document.getElementById('bounds-temp').innerText = `Ideal: ${plantaAtual.temp_min}°C a ${plantaAtual.temp_max}°C`;
+            document.getElementById('bounds-umid').innerText = `Ideal: ${plantaAtual.umidade_min}% a ${plantaAtual.umidade_max}%`;
+        }
+
+        function salvarPerfilPlanta() {
+            const nome = document.getElementById('add-nome').value.trim();
+            if(!nome) return alert("Por favor, insira um nome válido para o cultivo.");
+
+            const tmin = parseFloat(document.getElementById('add-tmin').value);
+            const tmax = parseFloat(document.getElementById('add-tmax').value);
+            const umin = parseFloat(document.getElementById('add-umin').value);
+            const umax = parseFloat(document.getElementById('add-umax').value);
+
+            if (tmin >= tmax || umin >= umax) {
+                alert("Erro nos limites críticos: Valores mínimos devem ser menores que os máximos.");
+                return;
+            }
+
+            const novaPlanta = {
+                nome: nome,
+                temp_min: tmin,
+                temp_max: tmax,
+                umidade_min: umin,
+                umidade_max: umax
+            };
+
+            plantas_db.push(novaPlanta);
+            renderizarListaPlantas();
+            registrarLogTerminal(`Novo perfil customizado registrado com sucesso: ${nome}`);
+            irParaTela('screen-selecao');
+        }
+
+        // ========================================================
+        // MOTOR PRINCIPAL DE EXECUÇÃO E CONTROLE
+        // ========================================================
+        function executarLoopPrincipalSincronismo() {
+            if(!plantaAtual) return;
+            loop_counter++;
+
+            if (simular_sem_arduino) {
+                processarLogicaSimulacaoFisica();
+            } else {
+                buscarDadosEsp32Real();
+            }
+
+            processarRegrasDeSaudeDaPlanta();
+            atualizarInterfaceGraficaEValores();
+
+            // Solução de Contorno para Bug do Engine SpeechSynthesis do Chromium
+            if (gerenciadorVoz.estado === 'FALANDO' && window.speechSynthesis.speaking) {
+                if (loop_counter % 8 === 0) {
+                    window.speechSynthesis.resume();
+                }
+            }
+        }
+
+        function processarLogicaSimulacaoFisica() {
+            const fatorVelocidade = modoDemonstracao ? 8 : 1;
+
+            // Oscilações ambientais naturais baseadas em tendências estáveis
+            tempAmbienteBase += (Math.random() * 0.04 - 0.02);
+            umidAmbienteBase += (Math.random() * 0.08 - 0.04);
+            soloAmbienteBase -= 0.01; // Evaporação natural contínua do solo
+
+            // Limites lógicos para as variáveis base do ambiente
+            tempAmbienteBase = Math.min(Math.max(14, tempAmbienteBase), 38);
+            umidAmbienteBase = Math.min(Math.max(30, umidAmbienteBase), 90);
+            soloAmbienteBase = Math.min(Math.max(20, soloAmbienteBase), 90);
+
+            for(let i = 0; i < fatorVelocidade; i++) {
+                // Efeito do Aquecedor
+                if (manual_states.aquecer) temperatura += (32 - temperatura) * 0.03 + 0.05;
+                // Efeito do Resfriador
+                else if (manual_states.resfriar) temperatura += (16 - temperatura) * 0.04 - 0.05;
+                // Equilíbrio térmico passivo com o ambiente externo
+                else temperatura += (tempAmbienteBase - temperatura) * 0.015;
+
+                // Efeito do Umidificador
+                if (manual_states.umidificar) umidade_ar += (85 - umidade_ar) * 0.03 + 0.1;
+                // Efeito colateral do resfriador na umidade do ar
+                else if (manual_states.resfriar) umidade_ar += (40 - umidade_ar) * 0.01 - 0.02;
+                // Equilíbrio de umidade passivo com o ambiente externo
+                else umidade_ar += (umidAmbienteBase - umidade_ar) * 0.015;
+
+                // Efeito da Bomba de Irrigação nos sensores de solo
+                if (manual_states.irrigar) {
+                    umidade_solo1 += (85 - umidade_solo1) * 0.06 + 0.15;
+                    umidade_solo2 += (82 - umidade_solo2) * 0.05 + 0.12;
+                    umidade_solo3 += (88 - umidade_solo3) * 0.07 + 0.18;
+                } else {
+                    // Absorção biológica e secagem natural diferenciada por sensor
+                    umidade_solo1 += (soloAmbienteBase - umidade_solo1) * 0.008 - 0.01;
+                    umidade_solo2 += (soloAmbienteBase - umidade_solo2) * 0.006 - 0.008;
+                    umidade_solo3 += (soloAmbienteBase - umidade_solo3) * 0.009 - 0.012;
+                }
+
+                // Proteção contra estouro de limites físicos estruturais
+                temperatura = Math.min(Math.max(10, temperatura), 45);
+                umidade_ar = Math.min(Math.max(5, umidade_ar), 98);
+                umidade_solo1 = Math.min(Math.max(0, umidade_solo1), 100);
+                umidade_solo2 = Math.min(Math.max(0, umidade_solo2), 100);
+                umidade_solo3 = Math.min(Math.max(0, umidade_solo3), 100);
+            }
+        }
+
+        function buscarDadosEsp32Real() {
+            if (requisicaoEmAndamento) return;
+            requisicaoEmAndamento = true;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_REQUISICAO);
+
+            fetch(`http://${esp32_ip}/api/sensors`, { signal: controller.signal })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    clearTimeout(timeoutId);
+                    
+                    // Validação de dados sanitizados da telemetria física
+                    if (validarDadosSensores(data)) {
+                        temperatura = data.temperature;
+                        umidade_ar = data.humidity;
+                        umidade_solo1 = data.soil1;
+                        umidade_solo2 = data.soil2;
+                        umidade_solo3 = data.soil3;
+                        
+                        if (!hardwareOnline) {
+                            hardwareOnline = true;
+                            registrarLogTerminal("<span style='color: #10B981;'>[Conexão] Link de comunicação com ESP32 restabelecido.</span>");
+                        }
+                    } else {
+                        registrarLogTerminal("<span style='color: #F59E0B;'>[Aviso] Dados recebidos corrompidos ou fora da escala física.</span>");
+                    }
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    if (hardwareOnline || loop_counter % 15 === 0) {
+                        hardwareOnline = false;
+                        registrarLogTerminal(`<span style="color:#EF4444">[Erro de Rede] Link indisponível com o ESP32. Verifique o IP local. Motivo: ${err.message}</span>`);
+                    }
+                })
+                .finally(() => {
+                    requisicaoEmAndamento = false;
+                });
+        }
+
+        function validarDadosSensores(data) {
+            if (!data || typeof data !== 'object') return false;
+            const check = (val) => typeof val === 'number' && !isNaN(val) && isFinite(val);
+            
+            return check(data.temperature) && data.temperature >= -10 && data.temperature <= 60 &&
+                   check(data.humidity) && data.humidity >= 0 && data.humidity <= 100 &&
+                   check(data.soil1) && data.soil1 >= 0 && data.soil1 <= 100;
+        }
+
+        function processarRegrasDeSaudeDaPlanta() {
+            let desvioEstresse = 0;
+
+            // Medição proporcional do nível de estresse térmico
+            if (temperatura < plantaAtual.temp_min) {
+                desvioEstresse += (plantaAtual.temp_min - temperatura) / plantaAtual.temp_min;
+            } else if (temperatura > plantaAtual.temp_max) {
+                desvioEstresse += (temperatura - plantaAtual.temp_max) / plantaAtual.temp_max;
+            }
+
+            // Medição proporcional do nível de estresse hídrico atmospherico
+            if (umidade_ar < plantaAtual.umidade_min) {
+                desvioEstresse += (plantaAtual.umidade_min - umidade_ar) / plantaAtual.umidade_min;
+            } else if (umidade_ar > plantaAtual.umidade_max) {
+                desvioEstresse += (umidade_ar - plantaAtual.umidade_max) / plantaAtual.umidade_max;
+            }
+
+            const emEstresse = desvioEstresse > 0;
+
+            if (emEstresse) {
+                // Redução de saúde ponderada pela gravidade real do estresse
+                const fatorDano = (modoDemonstracao ? 4 : 1) * (0.05 + desvioEstresse * 0.2);
+                saude = Math.max(0, saude - fatorDano);
+                segundosSobEstresseContínuo++;
+
+                if (segundosSobEstresseContínuo >= 30 && !alertaCriticoDisparado) {
+                    dispararNotificacaoSomaEstresse();
+                    alertaCriticoDisparado = true;
+                }
+            } else {
+                // Recuperação progressiva e suave se o ambiente estiver perfeito
+                const fatorRecuperacao = modoDemonstracao ? 0.4 : 0.05;
+                saude = Math.min(100, saude + fatorRecuperacao);
+                segundosSobEstresseContínuo = 0;
+                
+                if (alertaCriticoDisparado) {
+                    fecharNotificacaoWeb();
+                    alertaCriticoDisparado = false;
+                    registrarLogTerminal("<span style='color: #10B981;'>[Estabilizado] Parâmetros de cultivo regenerados e dentro da meta.</span>");
+                }
+            }
+        }
+
+        function dispararNotificacaoSomaEstresse() {
+            const avisoMsg = `⚠ Atenção: O ecossistema da cultura de ${plantaAtual.nome} encontra-se instável.`;
+            registrarLogTerminal(`<span style="color: #EF4444; font-weight: bold;">[Alerta] Critério biológico rompido. Iniciando degradação vital.</span>`);
+            
+            document.getElementById('notification-text').innerText = avisoMsg;
+            document.getElementById('notification-toast').style.display = 'block';
+
+            if (Notification.permission === "granted") {
+                new Notification("AgroOS - Alerta de Estufa", { body: avisoMsg });
+            }
+        }
+
+        function fecharNotificacaoWeb() {
+            document.getElementById('notification-toast').style.display = 'none';
+        }
+
+        function atualizarInterfaceGraficaEValores() {
+            // Atualização de strings nos displays de telemetria externa
+            document.getElementById('val-temp').innerText = `${temperatura.toFixed(1)} °C`;
+            document.getElementById('val-umid').innerText = `${umidade_ar.toFixed(1)} %`;
+            document.getElementById('val-solo1').innerText = `${umidade_solo1.toFixed(1)} %`;
+            document.getElementById('val-solo2').innerText = `${umidade_solo2.toFixed(1)} %`;
+            document.getElementById('val-solo3').innerText = `${umidade_solo3.toFixed(1)} %`;
+
+            // Tratamento das cores dos alertas nos painéis de medição
+            document.getElementById('val-temp').style.color = (temperatura < plantaAtual.temp_min || temperatura > plantaAtual.temp_max) ? "var(--cls-calor)" : "var(--cls-normal)";
+            document.getElementById('val-umid').style.color = (umidade_ar < plantaAtual.umidade_min || umidade_ar > plantaAtual.umidade_max) ? "var(--cls-seco)" : "var(--cls-normal)";
+
+            const avatar = document.getElementById('tama-avatar');
+            const badge = document.getElementById('tama-badge');
+            const dashBadge = document.getElementById('dash-estado-badge');
+
+            // Maquina de estados de humor e expressão da planta Tamagotchi
+            if (saude < 25) {
+                avatar.innerText = "🥀";
+                badge.innerText = "Crítico / Murchando";
+                badge.style.backgroundColor = "#7F1D1D";
+            } else if (saude < 60) {
+                avatar.innerText = "⚠️";
+                badge.innerText = "Estressada / Debilitada";
+                badge.style.backgroundColor = "#B45309";
+            } else if (temperatura > plantaAtual.temp_max) {
+                avatar.innerText = "🥵";
+                badge.innerText = "Estresse Térmico (Alta)";
+                badge.style.backgroundColor = "#78350F";
+            } else if (temperatura < plantaAtual.temp_min) {
+                avatar.innerText = "🥶";
+                badge.innerText = "Estresse Térmico (Baixa)";
+                badge.style.backgroundColor = "#1E3A8A";
+            } else if (umidade_ar < plantaAtual.umidade_min) {
+                avatar.innerText = "🌵";
+                badge.innerText = "Déficit de Umidade";
+                badge.style.backgroundColor = "#991B1B";
+            } else if (saude > 85) {
+                avatar.innerText = "🌿";
+                badge.innerText = "Desenvolvimento Ideal";
+                badge.style.backgroundColor = "#064E3B";
+            } else {
+                avatar.innerText = "🍃";
+                badge.innerText = "Estável / Monitorada";
+                badge.style.backgroundColor = "#111827";
+            }
+
+            dashBadge.innerText = badge.innerText;
+            dashBadge.style.backgroundColor = badge.style.backgroundColor;
+
+            document.getElementById('txt-saude').innerText = `${saude.toFixed(0)}%`;
+            const fill = document.getElementById('bar-saude');
+            fill.style.width = `${saude}%`;
+            fill.style.backgroundColor = saude > 70 ? "var(--cls-normal)" : saude > 35 ? "var(--cls-calor)" : "var(--cls-seco)";
+        }
+
+        function comutarAtuadorManual(tipo) {
+            // Exclusão mútua natural: Aquecer e Resfriar não operam juntos
+            if(tipo === 'aquecer' && !manual_states.aquecer) manual_states.resfriar = false;
+            if(tipo === 'resfriar' && !manual_states.resfriar) manual_states.aquecer = false;
+
+            manual_states[tipo] = !manual_states[tipo];
+            sincronizarPainelChavesBotoes();
+            registrarLogTerminal(`Comando manual enviado: Relé [${tipo.toUpperCase()}] alterado para ${manual_states[tipo] ? 'LIGADO' : 'DESLIGADO'}`);
+            despacharSinalParaESP32();
+        }
+
+        function sincronizarPainelChavesBotoes() {
+            document.querySelectorAll('.toggle-switch-panel').forEach(panel => {
+                const tipo = panel.getAttribute('data-type');
+                const lbl = document.getElementById(`lbl-state-${tipo}`);
+                if(manual_states[tipo]) {
+                    panel.classList.add('active');
+                    if(lbl) lbl.innerText = "EM OPERAÇÃO"; 
+                } else {
+                    panel.classList.remove('active');
+                    if(lbl) lbl.innerText = "DESATIVADO";
+                }
+            });
+        }
+
+        function restaurarModoAutomatico() {
+            manual_states = { aquecer: false, resfriar: false, umidificar: false, irrigar: false };
+            sincronizarPainelChavesBotoes();
+            registrarLogTerminal("Gerenciamento transferido com sucesso para a automação nativa.");
+            despacharSinalParaESP32();
+        }
+
+        function despacharSinalParaESP32() {
+            if (simular_sem_arduino || !hardwareOnline) return; 
+
+            const query = `?aq=${manual_states.aquecer?1:0}&rf=${manual_states.resfriar?1:0}&um=${manual_states.umidificar?1:0}&ir=${manual_states.irrigar?1:0}`;
+            
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 2000);
+
+            fetch(`http://${esp32_ip}/api/control${query}`, { signal: controller.signal })
+                .catch(err => console.warn("Falha no barramento de envio de controle para o ESP32:", err.message));
+        }
+
+        function toggleModoDemonstracao() {
+            modoDemonstracao = !modoDemonstracao;
+            const btn = document.getElementById('btn-demo');
+            if(!btn) return;
+            btn.innerText = modoDemonstracao ? "⚡ Modo Demo: ATIVADO" : "⚡ Modo Demo: OFF";
+            btn.style.backgroundColor = modoDemonstracao ? "#78350F" : "transparent";
+            registrarLogTerminal(`Aceleração de simulação temporal alterada: Modo Demo ${modoDemonstracao ? 'ATIVADO' : 'DESATIVADO'}.`);
+        }
+
+        function registrarLogTerminal(texto) {
+            const box = document.getElementById('terminal-log');
+            if(!box) return;
+
+            // Mecanismo antiflood de logs repetitivos em loop continuo
+            if (texto === ultimoLogMensagem) {
+                ultimoLogContador++;
+                const linhas = box.getElementsByClassName('terminal-line');
+                if (linhas.length > 0) {
+                    const deecClean = texto.replace(/<[^>]*>/g, '');
+                    linhas[linhas.length - 1].innerHTML = `<span class="terminal-time">[${new Date().toTimeString().split(' ')[0]}]</span> ${texto} (repetido ${ultimoLogContador + 1}x)`;
+                    return;
+                }
+            }
+
+            ultimoLogMensagem = texto;
+            ultimoLogContador = 0;
+
+            const agora = new Date();
+            const timeStr = agora.toTimeString().split(' ')[0];
+            
+            const novaLinha = document.createElement('div');
+            novaLinha.className = 'terminal-line';
+            novaLinha.innerHTML = `<span class="terminal-time">[${timeStr}]</span> ${texto}`;
+            
+            box.appendChild(novaLinha);
+
+            // Preservação de memória do DOM eliminando nós antigos de logs excedentes
+            if (box.children.length > MAX_LOGS_TERMINAL) {
+                box.removeChild(box.firstChild);
+            }
+            
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // ========================================================
+        // ENGENHARIA DE ÁUDIO E SÍNTESE CONVERSACIONAL (SPEECH)
+        // ========================================================
+        function inicializarSeletorDeVozes() {
+            if (!('speechSynthesis' in window)) {
+                registrarLogTerminal("<span style='color: var(--cls-seco)'>[Erro] Síntese de voz não suportada neste navegador.</span>");
+                return;
+            }
+
+            function carregarVozes() {
+                listaVozesNavegador = window.speechSynthesis.getVoices();
+                const seletor = document.getElementById('chat-voice-selector');
+                if(!seletor) return;
+                seletor.innerHTML = '';
+                
+                if (listaVozesNavegador.length === 0) return;
+
+                let melhorIndice = 0;
+                listaVozesNavegador.forEach((voz, index) => {
+                    let opt = document.createElement('option');
+                    opt.value = index;
+                    opt.textContent = `${voz.name} (${voz.lang})`;
+                    seletor.appendChild(opt);
+
+                    const langLower = voz.lang.toLowerCase().replace('_', '-');
+                    if (langLower === 'pt-br') {
+                        const atualMelhorLang = listaVozesNavegador[melhorIndice].lang.toLowerCase().replace('_', '-');
+                        if (atualMelhorLang !== 'pt-br' || voz.name.toLowerCase().includes('google') || voz.name.toLowerCase().includes('natural')) {
+                            melhorIndice = index;
+                        }
+                    } else if (langLower.startsWith('pt-') && listaVozesNavegador[melhorIndice].lang.toLowerCase().replace('_', '-') !== 'pt-br') {
+                        melhorIndice = index; // Fallback PT-PT
+                    } else if (langLower.startsWith('en-') && !listaVozesNavegador[melhorIndice].lang.toLowerCase().startsWith('pt')) {
+                        melhorIndice = index; // Fallback EN
+                    }
+                });
+                seletor.value = melhorIndice;
+            }
+
+            carregarVozes();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = carregarVozes;
+            }
+        }
+
+        function inicializarModuloReconhecimentoVoz() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = function() {
+                    gravandoVoz = true;
+                    const btn = document.getElementById('btn-voice-input');
+                    if(btn) btn.style.backgroundColor = "#EF4444";
+                    registrarLogTerminal("[Microfone] Ouvindo entrada do usuário...");
+                };
+                recognition.onresult = function(e) {
+                    const resultadoText = e.results[0][0].transcript;
+                    const inputChat = document.getElementById('chat-user-input');
+                    if(inputChat) inputChat.value = resultadoText;
+                    registrarLogTerminal(`[Microfone Capturado] "${resultadoText}"`);
+                };
+                recognition.onend = function() {
+                    gravandoVoz = false;
+                    const btn = document.getElementById('btn-voice-input');
+                    if(btn) btn.style.backgroundColor = "#212B35";
+                };
+                recognition.onerror = function(event) {
+                    gravandoVoz = false;
+                    const btn = document.getElementById('btn-voice-input');
+                    if(btn) btn.style.backgroundColor = "#212B35";
+                    
+                    let erroDetalhado = "Erro desconhecido";
+                    if (event.error === 'not-allowed') erroDetalhado = "Permissão ao microfone recusada.";
+                    if (event.error === 'no-speech') erroDetalhado = "Nenhuma fala foi detectada.";
+                    if (event.error === 'audio-capture') erroDetalhado = "Hardware de captura indisponível.";
+                    
+                    registrarLogTerminal(`<span style="color: var(--cls-seco)">[Microfone Erro] ${erroDetalhado} (${event.error})</span>`);
+                };
+            } else {
+                const btnInput = document.getElementById('btn-voice-input');
+                if (btnInput) btnInput.style.display = 'none';
+                registrarLogTerminal("<span style='color: var(--text-muted)'>[Aviso] Reconhecimento de voz por microfone indisponível neste navegador.</span>");
+            }
+        }
+
+        function alternarGravacaoVoz() {
+            if(!recognition) return alert("Interface de captura de áudio não suportada por este navegador.");
+            if(gravandoVoz) recognition.stop(); else recognition.start();
+        }
+
+        function atualizarInterfaceEstadoVoz(novoEstado) {
+            const estadoAnterior = gerenciadorVoz.estado;
+            gerenciadorVoz.estado = novoEstado;
+            const ind = document.getElementById('voice-status-indicator');
+            if (!ind) return;
+            ind.innerText = novoEstado;
+            
+            if (novoEstado === 'FALANDO') ind.style.color = '#10B981';
+            else if (novoEstado === 'PAUSADO') ind.style.color = '#F59E0B';
+            else if (novoEstado === 'CARREGANDO') ind.style.color = '#3B82F6';
+            else ind.style.color = 'var(--text-muted)';
+
+            if (estadoAnterior !== novoEstado) {
+                enviarSinalVozESP32(novoEstado);
+            }
+        }
+
+        function enviarSinalVozESP32(estado) {
+            if (simular_sem_arduino || !hardwareOnline) return; 
+
+            let sinal = (estado === 'FALANDO') ? 'falando' : 'calado';
+            
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 1500);
+
+            // A requisição vai bater num endpoint como: http://192.168.1.100/api/estado_voz?sinal=falando
+            fetch(`http://${esp32_ip}/api/estado_voz?sinal=${sinal}`, { signal: controller.signal })
+                .catch(err => console.warn("Falha ao notificar ESP32 sobre a voz:", err.message));
+        }
+
+        function dividirTextoEmBlocos(texto, limiteMaximo = 140) {
+            const regexFrases = /[^.!?|;\n]+[.!?|;\n]*/g;
+            let frasesEncontradas = texto.match(regexFrases) || [texto];
+            let listagemBlocos = [];
+            let blocoProvisorio = "";
+
+            frasesEncontradas.forEach(frase => {
+                if ((blocoProvisorio + frase).length > limiteMaximo) {
+                    if (blocoProvisorio.trim()) listagemBlocos.push(blocoProvisorio.trim());
+                    blocoProvisorio = frase;
+                } else {
+                    blocoProvisorio += frase;
+                }
+            });
+            if (blocoProvisorio.trim()) listagemBlocos.push(blocoProvisorio.trim());
+
+            let listagemFinalSaneada = [];
+            listagemBlocos.forEach(b => {
+                if (b.length > limiteMaximo) {
+                    let fragmentosPorEspaco = b.split(' ');
+                    let subFragmento = "";
+                    fragmentosPorEspaco.forEach(f => {
+                        if ((subFragmento + " " + f).length > limiteMaximo) {
+                            if (subFragmento.trim()) listagemFinalSaneada.push(subFragmento.trim());
+                            subFragmento = f;
+                        } else {
+                            subFragmento += (subFragmento ? " " : "") + f;
+                        }
+                    });
+                    if (subFragmento.trim()) listagemFinalSaneada.push(subFragmento.trim());
+                } else {
+                    listagemFinalSaneada.push(b);
+                }
+            });
+
+            return listagemFinalSaneada;
+        }
+
+        function emitirLeituraVozSO(texto) {
+            if (!('speechSynthesis' in window)) return;
+            
+            // Interrompe e limpa qualquer execução paralela anterior
+            window.speechSynthesis.cancel();
+            gerenciadorVoz.ignorarProximosBlocos = false;
+            
+            if (!vozSaidaAtiva) {
+                atualizarInterfaceEstadoVoz('PARADO');
+                return;
+            }
+
+            atualizarInterfaceEstadoVoz('CARREGANDO');
+            let textoLimpo = texto.replace(/[\*\#\_\`\-]/g, '');
+            gerenciadorVoz.blocos = dividirTextoEmBlocos(textoLimpo);
+            gerenciadorVoz.indiceAtual = 0;
+
+            lerProximoBlocoFila();
+        }
+
+        function lerProximoBlocoFila() {
+            if (gerenciadorVoz.ignorarProximosBlocos || !vozSaidaAtiva) {
+                atualizarInterfaceEstadoVoz('PARADO');
+                return;
+            }
+
+            if (gerenciadorVoz.indiceAtual >= gerenciadorVoz.blocos.length) {
+                atualizarInterfaceEstadoVoz('PARADO');
+                return;
+            }
+
+            let blocoTexto = gerenciadorVoz.blocos[gerenciadorVoz.indiceAtual];
+            if (!blocoTexto || !blocoTexto.trim()) {
+                gerenciadorVoz.indiceAtual++;
+                lerProximoBlocoFila();
+                return;
+            }
+
+            try {
+                let ssu = new SpeechSynthesisUtterance(blocoTexto);
+                const seletor = document.getElementById('chat-voice-selector');
+                if (seletor && listaVozesNavegador[seletor.value]) {
+                    ssu.voice = listaVozesNavegador[seletor.value];
+                }
+                
+                ssu.rate = 1.05;
+                ssu.pitch = 1.0;
+
+                ssu.onstart = function() {
+                    atualizarInterfaceEstadoVoz('FALANDO');
+                };
+
+                ssu.onend = function() {
+                    if (gerenciadorVoz.ignorarProximosBlocos) return;
+                    gerenciadorVoz.indiceAtual++;
+                    setTimeout(lerProximoBlocoFila, 150);
+                };
+
+                ssu.onerror = function(e) {
+                    if (e.error === 'interrupted') return;
+                    registrarLogTerminal(`<span style="color: var(--cls-calor)">[Voz] Falha na reprodução do bloco ${gerenciadorVoz.indiceAtual + 1}: ${e.error}</span>`);
+                    gerenciadorVoz.indiceAtual++;
+                    setTimeout(lerProximoBlocoFila, 150);
+                };
+
+                window.speechSynthesis.speak(ssu);
+            } catch (err) {
+                registrarLogTerminal(`<span style="color: var(--cls-seco)">[Erro] Erro estrutural na síntese: ${err.message}</span>`);
+                atualizarInterfaceEstadoVoz('PARADO');
+            }
+        }
+
+        function pausarLeituraVoz() {
+            if (!('speechSynthesis' in window)) return;
+            if (gerenciadorVoz.estado === 'FALANDO') {
+                window.speechSynthesis.pause();
+                atualizarInterfaceEstadoVoz('PAUSADO');
+                registrarLogTerminal("[Voz] Leitura em áudio pausada pelo usuário.");
+            }
+        }
+
+        function continuarLeituraVoz() {
+            if (!('speechSynthesis' in window)) return;
+            if (gerenciadorVoz.estado === 'PAUSADO') {
+                window.speechSynthesis.resume();
+                atualizarInterfaceEstadoVoz('FALANDO');
+                registrarLogTerminal("[Voz] Leitura em áudio retomada.");
+            }
+        }
+
+        function pararLeituraVoz() {
+            if (!('speechSynthesis' in window)) return;
+            gerenciadorVoz.ignorarProximosBlocos = true;
+            window.speechSynthesis.cancel();
+            atualizarInterfaceEstadoVoz('PARADO');
+            registrarLogTerminal("[Voz] Leitura cancelada e buffers limpos.");
+        }
+
+        function toggleVozOutput() {
+            vozSaidaAtiva = !vozSaidaAtiva;
+            const btn = document.getElementById('btn-voice-output');
+            if(!btn) return;
+            btn.innerText = vozSaidaAtiva ? "🔊 Voz: ON" : "🔇 Voz: OFF";
+            btn.style.borderColor = vozSaidaAtiva ? "#10B981" : "#EF4444";
+            if (!vozSaidaAtiva) {
+                pararLeituraVoz();
+            }
+        }
+
+        function enviarMensagemIA() {
+            const input = document.getElementById('chat-user-input');
+            if(!input) return;
+            const txt = input.value.trim();
+            if(!txt) return;
+
+            appendBubble('user', txt);
+            input.value = '';
+
+            if(!GROQ_API_KEY || GROQ_API_KEY.includes("SUA_CHAVE")) {
+                const errText = "Chave de API não configurada. Insira um token válido no escopo do código.";
+                appendBubble('bot', errText);
+                emitirLeituraVozSO(errText);
+                return;
+            }
+
+            appendBubble('bot', "Processando diagnóstico ambiental...");
+
+            // Engenharia de prompt rica contendo o estado analítico completo da estufa inteligente
+            const context = `Contexto em Tempo Real da Estufa Inteligente:
+- Cultura ativa carregada: Perfil de ${plantaAtual.nome}.
+- Parâmetros Biológicos Alvo: Temperatura ideal entre ${plantaAtual.temp_min}°C e ${plantaAtual.temp_max}°C. Umidade do Ar ideal entre ${plantaAtual.umidade_min}% e ${plantaAtual.umidade_max}%.
+- Leituras Atuais da Telemetria: Temperatura Atmosférica = ${temperatura.toFixed(1)}°C, Umidade Relativa do Ar = ${umidade_ar.toFixed(1)}%. Média de Umidade detectada nos sensores de Solo = ${((umidade_solo1+umidade_solo2+umidade_solo3)/3).toFixed(0)}% (S1:${umidade_solo1.toFixed(0)}%, S2:${umidade_solo2.toFixed(0)}%, S3:${umidade_solo3.toFixed(0)}%).
+- Estado de Saúde Vital do Cultivo: ${saude.toFixed(0)}% de estabilidade orgânica.
+- Configuração Atual dos Relés de Comando: Aquecedor = ${manual_states.aquecer?'LIGADO':'DESLIGADO'}, Sistema de Exaustão/Resfriamento = ${manual_states.resfriar?'LIGADO':'DESLIGADO'}, Módulo Umidificador = ${manual_states.umidificar?'LIGADO':'DESLIGADO'}, Bomba de Irrigação = ${manual_states.irrigar?'LIGADO':'DESLIGADO'}.
+- Modo de Operação: ${simular_sem_arduino?'Ambiente Simulado Localmente':'Conectado ao Hardware ESP32 Real'}.`;
+
+            fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${GROQ_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: GROQ_MODEL,
+                    messages: [
+                        { "role": "system", "content": `Você é uma agricultora e especialista em cultivo com muitos anos de experiência prática.
+
+                        Converse de forma natural, amigável e humana.
+
+                        Você possui acesso aos dados da estufa, porém não deve mencionar sensores, temperatura, umidade ou telemetria em todas as respostas.
+
+                        Use os dados da estufa apenas quando:
+                        - o usuário pedir uma análise da estufa;
+                        - o usuário pedir um diagnóstico;
+                        - os dados forem importantes para responder corretamente.
+
+                        Se o usuário perguntar sobre qualquer planta, cultivo, pragas, adubação, irrigação, hidroponia, aquaponia ou jardinagem, responda normalmente como uma especialista experiente.
+
+                        Evite parecer uma IA.
+                        Evite respostas excessivamente técnicas.
+                        Adapte a linguagem ao nível do usuário.
+                        Basei-se nessas métricas: ${context}` },
+                        { "role": "user", "content": txt }
+                    ],
+                    temperature: 0.4,
+                    max_tokens: 350
+                })
+            })
+            .then(res => {
+                if(!res.ok) throw new Error(`Falha HTTP: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                removerUltimoCardProcessando();
+                
+                if (data && data.choices && data.choices[0] && data.choices[0].message) {
+                    const respostaFinal = data.choices[0].message.content.trim();
+                    appendBubble('bot', respostaFinal);
+                    emitirLeituraVozSO(respostaFinal);
+                } else {
+                    throw new Error("Formato de resposta inválido");
+                }
+            })
+            .catch(err => {
+                removerUltimoCardProcessando();
+                const msgErro = "Falha na comunicação com o servidor de inteligência artificial. Verifique a conexão de rede.";
+                appendBubble('bot', msgErro);
+                console.error("Erro na requisição do Assistente Groq AI:", err);
+            });
+        }
+
+        function removerUltimoCardProcessando() {
+            const boxes = document.getElementById('chat-messages-box');
+            if(boxes && boxes.lastChild) {
+                // Remove o balão provisório de processamento
+                if(boxes.lastChild.innerText.includes("Processando diagnóstico")) {
+                    boxes.lastChild.remove();
+                }
+            }
+        }
+
+        function appendBubble(role, text) {
+            const box = document.getElementById('chat-messages-box');
+            if(!box) return;
+            const div = document.createElement('div');
+            div.className = `chat-bubble ${role}`;
+            div.innerText = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function checarTeclaChat(e) { if(e.key === 'Enter') enviarMensagemIA(); }
+    </script>
+</body>
+</html>
